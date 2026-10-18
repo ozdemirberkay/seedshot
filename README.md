@@ -18,11 +18,11 @@ Seedshot is a [Claude Code](https://code.claude.com) skill that does all of it i
 In Claude Code:
 
 ```bash
-claude plugin marketplace add OWNER/seedshot
+claude plugin marketplace add ozdemirberkay/seedshot
 claude plugin install seedshot@seedshot
 ```
 
-Or, from inside a session: `/plugin install seedshot --marketplace OWNER/seedshot`
+Or, from inside a session: `/plugin install seedshot --marketplace ozdemirberkay/seedshot`
 
 <details>
 <summary>Use it as a standalone skill, without the plugin</summary>
@@ -80,12 +80,21 @@ The module Seedshot adds to your project only runs when **both**:
 
 Store builds have neither. The module lives in one folder with a few one-line hooks, and every touched file is listed in the final report. Keep it, and next release's screenshots are a single command. Seedshot never commits, never calls your real backend and never touches real accounts.
 
+## What it runs and changes
+
+- **Runs:** `xcrun simctl`, Android `emulator` and `adb`, your project's own build command (`xcodebuild`, Gradle, `flutter`, `expo` …) and its bundled Python scripts.
+- **Creates:** dedicated "Seedshot …" simulators and `Seedshot_Phone` / `Seedshot_Tablet` emulators. `ios.py cleanup --delete` and `android.py cleanup --delete` remove them.
+- **Changes in your project:** the seedshot module, its hooks and `seedshot.config.json`. Nothing is committed.
+- **Writes:** screenshots to `~/Desktop/seedshot/<App>/`, or the folder you choose.
+- **Network:** Seedshot sends no data anywhere. Network access happens only through your project's build tools (CocoaPods, Gradle, npm …), and through SDK downloads it asks you about first.
+
 ## Supported stacks
 
 Swift (SwiftUI / UIKit) · Kotlin (Jetpack Compose / Views) · Flutter · React Native · Expo
 
 ## Requirements
 
+- **Claude Code on your own machine:** the terminal, the desktop app or an IDE extension. Seedshot drives local simulators, so it doesn't work in claude.ai chat or in cloud sessions.
 - **iOS:** macOS with Xcode and at least one iOS simulator runtime
 - **Android:** Android SDK with the emulator and a system image (API 33+ recommended, for per-app locales)
 - **Python 3:** the helper scripts use only the standard library; Pillow is optional
@@ -108,12 +117,6 @@ They're usable on their own too. Run any of them with `--help`.
 | `verify.py` | App Store / Google Play size, alpha, count and completeness checks. `--fix` strips alpha, `--sheet` writes a one-page HTML overview, `--seed <dir>` checks that per-locale seed files share one structure |
 
 `pngkit.py` is a small shared helper the others use to write alpha-free PNGs.
-
-## Roadmap
-
-- Framed marketing images (device frames, localized captions)
-- App preview videos
-- Fastlane `deliver` / Play Publisher upload hand-off
 
 ## License
 
