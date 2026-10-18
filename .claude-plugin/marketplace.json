@@ -1,0 +1,14 @@
+{
+  "name": "seedshot",
+  "description": "Seedshot: store screenshots with seeded, localized demo data.",
+  "owner": {
+    "name": "Berkay Özdemir"
+  },
+  "plugins": [
+    {
+      "name": "seedshot",
+      "source": "./",
+      "description": "Store-ready App Store and Google Play screenshots with realistic, consistent, localized demo data, in every language and in light and dark mode."
+    }
+  ]
+}

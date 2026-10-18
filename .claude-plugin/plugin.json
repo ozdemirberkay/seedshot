@@ -1,0 +1,25 @@
+{
+  "name": "seedshot",
+  "displayName": "Seedshot",
+  "version": "0.1.0",
+  "description": "Store-ready App Store and Google Play screenshots with realistic, consistent, localized demo data, in every language and in light and dark mode, on iOS simulators and Android emulators.",
+  "author": {
+    "name": "Berkay Özdemir"
+  },
+  "homepage": "https://github.com/OWNER/seedshot",
+  "repository": "https://github.com/OWNER/seedshot",
+  "license": "MIT",
+  "keywords": [
+    "app-store",
+    "google-play",
+    "screenshots",
+    "aso",
+    "localization",
+    "ios",
+    "android",
+    "flutter",
+    "react-native",
+    "swiftui",
+    "jetpack-compose"
+  ]
+}
