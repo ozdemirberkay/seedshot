@@ -50,7 +50,7 @@ Every command takes optional overrides:
 /seedshot:verify ~/Desktop/shots
 ```
 
-Seedshot asks you exactly once, to approve the plan (screens, devices, languages, pro access, sign-in, output folder), and saves it to `.seedshot/config.json`. Every skill reads that file, so the steps can run on different days and the next release needs no questions at all. After the approval it works on its own and reports back with the results.
+Without overrides Seedshot captures everything: every platform, phone and tablet, every language, light and dark. It never asks about those. It asks you exactly once, to approve the plan (screens, pro access, sign-in, output folder), and saves it to `.seedshot/config.json`. Every skill reads that file, so the steps can run on different days and the next release needs no questions at all. After the approval it works on its own and reports back with the results.
 
 ## What you get
 
@@ -86,13 +86,15 @@ Seedshot has to change your code to show seed data, but only for the length of a
 2. **Every file Seedshot touches is registered first**: the module, its hooks, seed data, project and build files.
 3. **When the run ends**, `session.py restore` puts each registered file back exactly as it was, uncommitted work included, and deletes the folders Seedshot created. Changes that weren't Seedshot's, yours or a build's, are listed and left alone. Real bug fixes it made along the way (a missing translation) stay, and are listed.
 
-`git status` then shows your own work, the kept fixes and one folder, `.seedshot/`:
+`git status` then shows only your own work and the kept fixes. Seedshot keeps its own files in one hidden folder, `.seedshot/`, which carries its own `.gitignore` (like `.pytest_cache`), so git never sees it:
 
-| File | What it is | Commit it? |
-|---|---|---|
-| `config.json` | The approved plan | Yes, so the team and the next release reuse it |
-| `seedshot.patch` | Seedshot mode and seed data, saved when they were taken out | Yes, so the next release puts them back in one step |
-| `login.json` | Your demo account, if the app needs a real sign-in | Never. `.seedshot/.gitignore` keeps it out |
+| File | What it is |
+|---|---|
+| `config.json` | The approved plan, so the next release asks nothing |
+| `seedshot.patch` | Seedshot mode and seed data, saved when they were taken out, so the next release puts them back in one step |
+| `login.json` | Your demo account, if the app needs a real sign-in |
+
+To share the plan with your team, commit just that file: `git add -f .seedshot/config.json`.
 
 While seedshot mode is in the code, it's still double-locked. It only runs when **both** the app was built with the seedshot flag (a Swift compilation condition, a Gradle property, a `--dart-define`, `EXPO_PUBLIC_SEEDSHOT`) **and** it was launched with a `SEEDSHOT_SCREEN` parameter. Store builds have neither. `session.py status` shows what's Seedshot's at any time. Seedshot never commits.
 
@@ -110,7 +112,7 @@ While seedshot mode is in the code, it's still double-locked. It only runs when 
    { "email": "demo@example.com", "password": "…" }
    ```
 
-   Or paste it in chat, and Claude writes the file for you without repeating the values. By the time Seedshot asks for the account, it has already added `login.json` to `.seedshot/.gitignore`. If you create the file before Seedshot asks, add that line yourself.
+   Or paste it in chat, and Claude writes the file for you without repeating the values. By the time Seedshot asks for the account, `.seedshot/` already ignores itself. If you create the folder before Seedshot asks, add a `.seedshot/.gitignore` with the single line `*`.
 3. **Capture as usual.** Each launch passes the file's fields to the app as `SEEDSHOT_LOGIN_*` launch parameters (`email` becomes `SEEDSHOT_LOGIN_EMAIL`). Seedshot mode then signs in through your app's own sign-in code. The values never appear in commands, code, the config or the saved patch. The scripts refuse the file if git could commit it.
 4. **Next release.** The config remembers the choice, so there's nothing to ask. `login.json` stays on your machine, so anyone else on the team who captures needs their own copy.
 
@@ -120,7 +122,7 @@ Seedshot only reads with that account: it never creates, edits or deletes anythi
 
 - **Runs:** `xcrun simctl`, Android `emulator` and `adb`, your project's own build command (`xcodebuild`, Gradle, `flutter`, `expo` …) and its bundled Python scripts.
 - **Creates:** dedicated "Seedshot …" simulators and `Seedshot_Phone` / `Seedshot_Tablet` emulators. `ios.py cleanup --delete` and `android.py cleanup --delete` remove them.
-- **Changes in your project:** seedshot mode, only during a run; afterwards, only `.seedshot/` and any real bug fixes it lists. Nothing is committed.
+- **Changes in your project:** seedshot mode, only during a run; afterwards, only the real bug fixes it lists, plus `.seedshot/`, which git ignores. Nothing is committed.
 - **Writes:** screenshots to `~/Desktop/seedshot/<App>/`, or the folder you choose. iOS build output goes to `~/Library/Developer/Xcode/DerivedData/Seedshot-<App>`.
 - **Network:** Seedshot sends no data anywhere. Network access happens only through your project's build tools (CocoaPods, Gradle, npm …), SDK downloads it asks you about first, and, if you give it a demo account, your app signing in to your backend with it.
 

@@ -19,7 +19,7 @@ This skill runs the other three Seedshot skills in order, then puts the project 
 
 | Step | Read | What it does |
 |---|---|---|
-| 1. Discover & plan | `${CLAUDE_PLUGIN_ROOT}/references/plan.md` | Reads the project, agrees on the capture matrix with the user, starts change tracking, saves `.seedshot/config.json` |
+| 1. Discover & plan | `${CLAUDE_PLUGIN_ROOT}/references/plan.md` | Reads the project, sets the capture matrix from the arguments (everything by default), gets the plan approved once, starts change tracking, saves `.seedshot/config.json` |
 | 2. Seed | `${CLAUDE_PLUGIN_ROOT}/skills/seed/SKILL.md` | Writes the localized demo data and the release-safe seedshot mode, registering every file it touches |
 | 3. Capture | `${CLAUDE_PLUGIN_ROOT}/skills/capture/SKILL.md` | Pilot shot, then the full matrix on dedicated simulators and emulators |
 | 4. Verify | `${CLAUDE_PLUGIN_ROOT}/skills/verify/SKILL.md` | Store checks, a look at every image, re-captures, contact sheet |
@@ -41,8 +41,8 @@ Keep it short:
 - the output path and the contact sheet
 - image counts per platform/device/locale/appearance
 - the project: Seedshot's changes were taken out and every file is back as it was; the real bugs you fixed stay (list them); other files that changed during the run were left alone (list them, they're the user's or a build's)
-- `.seedshot/`: the plan and the saved seedshot mode. Committing it lets the team and the next release reuse them.
+- `.seedshot/`: the plan and the saved seedshot mode, kept for the next release. Git ignores the folder.
 - how to re-run next release: `/seedshot:all` again, or `/seedshot:capture` if only the app's look changed; both put the saved seedshot mode back and take it out again
 - anything the user must do in the store consoles (e.g. "Play: tablet listing needs at least 4 images, you have 5 ✓"). If the images show pro features, the App Store description must say they need a subscription (App Review Guideline 2.3.2).
 
-Never commit. If the project is a git repo, end with a `git status` summary: it should show only the user's own changes, the kept fixes and `.seedshot/`.
+Never commit. If the project is a git repo, end with a `git status` summary: it should show only the user's own changes and the kept fixes. If `.seedshot/` shows up, its `.gitignore` is missing or was edited: say so.

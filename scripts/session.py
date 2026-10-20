@@ -33,6 +33,12 @@ LOGIN = "login.json"
 REF = "refs/worktree/seedshot"
 IDENTITY = {"GIT_AUTHOR_NAME": "seedshot", "GIT_AUTHOR_EMAIL": "seedshot@localhost",
             "GIT_COMMITTER_NAME": "seedshot", "GIT_COMMITTER_EMAIL": "seedshot@localhost"}
+# .seedshot/ ignores itself, like .pytest_cache, so it never shows up in git status.
+OWN_IGNORE = ("# Seedshot's files: the plan, the saved seedshot mode, the demo account.\n"
+              "# Kept on this machine for the next release, never committed.\n"
+              "# To share the plan with your team: git add -f .seedshot/config.json\n*\n")
+# What an older Seedshot wrote; replaced by OWN_IGNORE.
+OLD_IGNORE = f"# Demo-account credentials for seedshot launches. Never commit them.\n{LOGIN}\n"
 # Only used outside git. Inside a repository, its own .gitignore files decide.
 DEFAULT_EXCLUDES = """\
 .seedshot/
@@ -143,13 +149,18 @@ class Project:
         shutil.rmtree(self.state, ignore_errors=True)  # outside git this is the private repository
 
     def own_dir(self):
-        """Create .seedshot/ with a .gitignore that keeps the demo account out of git."""
+        """Create .seedshot/ with a .gitignore that hides the whole folder from git."""
         d = os.path.join(self.root, SEEDSHOT_DIR)
         os.makedirs(d, exist_ok=True)
         ignore = os.path.join(d, ".gitignore")
-        if not os.path.exists(ignore):
+        try:
+            with open(ignore) as f:
+                current = f.read()
+        except FileNotFoundError:
+            current = OLD_IGNORE
+        if current == OLD_IGNORE:  # a .gitignore the user edited is left alone
             with open(ignore, "w") as f:
-                f.write(f"# Demo-account credentials for seedshot launches. Never commit them.\n{LOGIN}\n")
+                f.write(OWN_IGNORE)
         return d
 
     # -- snapshots -----------------------------------------------------------
@@ -384,7 +395,7 @@ def login_params(path):
         ignored = 128
     if ignored == 1:
         die(f"{path} is not git-ignored, so it could be committed. Add it to .gitignore first "
-            f"({SEEDSHOT_DIR}/.gitignore, created by `session.py start`, lists {LOGIN}).")
+            f"({SEEDSHOT_DIR}/.gitignore, created by `session.py start`, ignores the whole folder).")
     try:
         with open(full) as f:
             data = json.load(f)

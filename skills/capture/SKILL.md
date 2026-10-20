@@ -15,7 +15,7 @@ The plugin folder is `${CLAUDE_PLUGIN_ROOT}`. The files you read from it below a
 
 ## Before you start
 
-If `.seedshot/config.json` exists, load it, apply any arguments the user passed (e.g. `ios only`, `tr-TR en-US`, `skip dark`, `screens: home, stats`) and show a one-line summary of what you'll capture. Otherwise, follow `${CLAUDE_PLUGIN_ROOT}/references/plan.md` to discover the project and agree on the capture matrix: platforms, devices, locales, appearances, screens, output folder and build command. When `seedshot:all` sent you here, the plan is already approved, so go straight on.
+If `.seedshot/config.json` exists, load it, apply any arguments the user passed (e.g. `ios only`, `tr-TR en-US`, `skip dark`, `screens: home, stats`) and show a one-line summary of what you'll capture. Otherwise, follow `${CLAUDE_PLUGIN_ROOT}/references/plan.md` to discover the project and plan the capture: the matrix (from the arguments, else everything), screens, output folder and build command. When `seedshot:all` sent you here, the plan is already approved, so go straight on.
 
 Run `ios.py doctor` / `android.py doctor` first. If something is missing, tell the user exactly what to install, and ask before any large download.
 

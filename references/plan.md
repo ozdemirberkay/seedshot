@@ -2,7 +2,9 @@
 
 Every Seedshot skill starts here. Read the project, agree on a plan with the user once, and save it to `.seedshot/config.json`, so every skill and every later release reuses it.
 
-Plan only what the running skill needs. `seed` needs the stack, locales, screens and story. `capture` needs the full matrix and the build. `verify` needs only the output folder. Leave the other fields for the skill that fills them. If the user passed arguments (e.g. `ios only`, `tr en`, `skip dark`, `screens: home, stats`), treat them as overrides to the defaults and the saved config.
+Plan only what the running skill needs. `seed` needs the stack, locales, screens and story. `capture` needs the full matrix and the build. `verify` needs only the output folder. Leave the other fields for the skill that fills them.
+
+Platforms, devices, locales and appearances are never questions. Take them from the user's arguments (e.g. `ios only`, `tablet only`, `tr en`, `skip dark`), else from the saved config, else from the defaults below, which means everything. `screens: home, stats` likewise overrides the screen list.
 
 ## The capture matrix
 
@@ -21,13 +23,15 @@ The default devices are chosen for store acceptance, not personal preference. Ap
 
 ## The .seedshot folder
 
-Everything Seedshot keeps in a project lives in one folder at its root, so the user can always tell Seedshot's files from their own:
+Everything Seedshot keeps in a project lives in one folder at its root. Its own `.gitignore` (a single `*`) hides the whole folder from git, so after a run `git status` shows only the user's work:
 
-| File | What it is | Commit it? |
-|---|---|---|
-| `.seedshot/config.json` | The approved plan | Yes, so the team and the next release reuse it |
-| `.seedshot/seedshot.patch` | Seedshot mode and the seed data, saved when they're removed from the code after a run | Yes, so the next release puts them back in one step |
-| `.seedshot/login.json` | The demo account, only if the app needs a real sign-in | Never. `.seedshot/.gitignore` keeps it out of git |
+| File | What it is |
+|---|---|
+| `.seedshot/config.json` | The approved plan, so the next release asks nothing |
+| `.seedshot/seedshot.patch` | Seedshot mode and the seed data, saved when they're removed from the code after a run, so the next release puts them back in one step |
+| `.seedshot/login.json` | The demo account, only if the app needs a real sign-in |
+
+`session.py start` writes that `.gitignore`, and replaces the one an older Seedshot wrote (it listed only `login.json`).
 
 If the config exists:
 - load it
@@ -86,7 +90,7 @@ Read the project before asking anything. Establish:
 
 ## Plan (the one checkpoint)
 
-Present a compact plan and wait for the user's approval. Include the parts the running skill needs:
+Present a compact plan and wait for the user's approval. State the matrix as what you'll capture, not as a question or a list of options. Don't offer to narrow it (only iOS, only phone, fewer locales), even when the image count is large: the user narrows it with arguments, or in their reply. Ask only what the project can't tell you. Include the parts the running skill needs:
 
 - stack, platforms, the device for each class (with pixel size and the store slot it fills)
 - locales, and appearances
@@ -94,7 +98,7 @@ Present a compact plan and wait for the user's approval. Include the parts the r
 - output path, and total image count (e.g. 6 screens × 2 locales × 2 appearances × 4 devices = 96)
 - **access**: the app as a paying user with every pro feature unlocked (the default when it has a paid tier, unless the user wants the free tier shown), and how it's signed in:
   - `fake` (default): a fake signed-in session, nothing touches the backend
-  - `account`: the user's demo account, when the screens can't work without a real session. Before you ask for it, make sure `.seedshot/.gitignore` lists `login.json` (create the file if it's missing), so the account can never be committed, not even before approval. `session.py start` keeps an existing `.gitignore`. Then ask the user to put the account in `.seedshot/login.json` themselves, e.g. `{"email": "…", "password": "…"}` (any field names work). If they paste it in chat instead, write that file for them and never repeat the values. It should be a dedicated demo account, like the one given to App Review, never a personal one, and one that signs in without a one-time code.
+  - `account`: the user's demo account, when the screens can't work without a real session. Before you ask for it, make sure `.seedshot/.gitignore` exists and contains `*` (create it if it's missing), so the account can never be committed, not even before approval. Then ask the user to put the account in `.seedshot/login.json` themselves, e.g. `{"email": "…", "password": "…"}` (any field names work). If they paste it in chat instead, write that file for them and never repeat the values. It should be a dedicated demo account, like the one given to App Review, never a personal one, and one that signs in without a one-time code.
 - what you'll add to the project (seedshot mode), and that it comes out again when the run ends: every file Seedshot touched goes back exactly as it was, and the user's own changes are left alone.
 
 On approval, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/session.py start`, then write `.seedshot/config.json`. `start` snapshots the project so everything Seedshot changes can be undone, and creates `.seedshot/` with its `.gitignore`. This is the only planned interruption. After it, work autonomously and only stop for genuine blockers.
