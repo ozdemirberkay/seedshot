@@ -17,6 +17,7 @@ import sys
 import time
 
 import pngkit
+import session
 
 DEVICE_PREFIX = "Seedshot "
 
@@ -56,11 +57,11 @@ def die(msg, code=1):
     sys.exit(code)
 
 
-def run(cmd, check=True, capture=True, env=None):
+def run(cmd, check=True, capture=True, env=None, label=None):
     proc = subprocess.run(cmd, capture_output=capture, text=True, env=env)
     if check and proc.returncode != 0:
         err = (proc.stderr or proc.stdout or "").strip()
-        die(f"{' '.join(cmd)}\n{err}")
+        die(f"{label or ' '.join(cmd)}\n{err}")  # pass a label when the command line holds secrets
     return proc
 
 
@@ -223,14 +224,18 @@ def cmd_launch(args):
     for kv in args.param or []:
         k, _, v = kv.partition("=")
         params[k] = v
+    if args.login:  # demo account: SEEDSHOT_LOGIN_* parameters, never printed
+        params.update(session.login_params(args.login))
     for k, v in params.items():
         env["SIMCTL_CHILD_" + k] = v  # visible to the app as environment variables
     language, locale = apple_locale_args(args.locale)
     argv = ["-AppleLanguages", f"({language})", "-AppleLocale", locale]
     for k, v in params.items():  # also as launch arguments (-KEY value -> UserDefaults)
         argv += [f"-{k}", v]
-    run(["xcrun", "simctl", "launch", args.udid, args.bundle_id, *argv], env=env)
-    print(f"launched {args.bundle_id} [{args.locale}] screen={args.screen or '-'}")
+    run(["xcrun", "simctl", "launch", args.udid, args.bundle_id, *argv], env=env,
+        label=f"xcrun simctl launch {args.udid} {args.bundle_id}")
+    print(f"launched {args.bundle_id} [{args.locale}] screen={args.screen or '-'}"
+          + (" signed-in" if args.login else ""))
 
 
 def capture(udid, tmp_path):
@@ -330,6 +335,9 @@ def main():
     s.add_argument("--screen", help="value for SEEDSHOT_SCREEN")
     s.add_argument("--param", action="append", metavar="KEY=VALUE",
                    help="extra parameter passed as env var and launch argument (repeatable)")
+    s.add_argument("--login", nargs="?", const=".seedshot/login.json", metavar="FILE",
+                   help="sign in with a demo account: pass the JSON file's fields as SEEDSHOT_LOGIN_* "
+                        "(default file: .seedshot/login.json)")
     s.set_defaults(fn=cmd_launch)
 
     s = sub.add_parser("shot", help="save a screenshot once the screen stops changing")

@@ -4,6 +4,7 @@ Seedshot mode is a small module in the app that renders any listed screen with s
 
 ## Contents
 - [The contract](#the-contract)
+- [Full access and sign-in](#full-access-and-sign-in)
 - [Swift: SwiftUI / UIKit](#swift-swiftui--uikit)
 - [Kotlin: Jetpack Compose / Views](#kotlin-jetpack-compose--views)
 - [Flutter](#flutter)
@@ -20,7 +21,44 @@ Seedshot mode is a small module in the app that renders any listed screen with s
 | **Lock 2: launch parameter** | Even in a seedshot build, nothing changes unless `SEEDSHOT_SCREEN` is present at launch. |
 | **Parameters** | `SEEDSHOT_SCREEN` (a screen id from the config) and `SEEDSHOT_LOCALE` (BCP 47, e.g. `tr-TR`). On iOS, `ios.py launch` passes them as environment variables **and** as launch arguments (`-SEEDSHOT_SCREEN home`, readable through `UserDefaults`). On Android, `android.py launch` passes them as string intent extras. |
 | **Fixed clock** | Expose `Seedshot.now` = today at 09:41 local time. Use it wherever the UI derives text from the clock ("Good morning", "2 hours ago"), so it matches the status bar. |
-| **Footprint** | One folder for the module and seed files, plus one-line hooks at: app entry (read parameters), the data boundary (swap source), and navigation (open the requested screen). List every hook in the final report. |
+| **Full access** | The app's own entitlement check answers "top tier, active". No purchase SDK starts. |
+| **Sign-in** | A fake in-memory session (`fake`), or the user's demo account from `SEEDSHOT_LOGIN_*` parameters (`account`). |
+| **Footprint** | One folder for the module and seed files, plus one-line hooks at: app entry (read parameters), the data boundary (swap source), the entitlement check, and navigation (open the requested screen). Register each file with `session.py track` before you write it. `session.py restore` takes them all out after the run. |
+
+---
+
+## Full access and sign-in
+
+### Full access (pro / premium)
+
+Hook the app's **own** entitlement boundary: the one place its UI asks "is this user paying?" (`SubscriptionManager.isPro`, `EntitlementRepository`, `usePremium()`, a `user.plan` field). In seedshot mode it reports the top tier, active, renewing in the future. SDK types (`CustomerInfo`, `Transaction`, `Purchase`) usually can't be built by hand, so stub one level above them.
+
+| Purchases via | In seedshot mode |
+|---|---|
+| RevenueCat | Skip `Purchases.configure`. The app's wrapper reports the entitlement as active. |
+| StoreKit 2 | The app's store class reports the product as purchased, without reading `Transaction.currentEntitlements`. |
+| Google Play Billing | Don't connect the `BillingClient`. The billing repository reports the subscription as active. |
+| Adapty, Qonversion, Superwall | Don't activate the SDK or register paywall placements. The wrapper reports access as active. |
+| A backend field (`user.plan`) | Set it in the seed user. |
+
+- Look for leftovers on every screen: lock icons, "PRO" tags, blurred previews, upgrade banners, daily-limit counters, trial countdowns.
+- **Paywall as a shot:** real store prices don't load in a simulator without a StoreKit configuration, or on an emulator without a Play account. Show the paywall with realistic local prices from the seed, as `seed-data.md` describes.
+- Debug, admin and beta features stay off. Full access means a paying customer, not a developer.
+
+### Sign-in
+
+| `access.signIn` | Seedshot mode |
+|---|---|
+| `fake` (default) | Puts a seed user and token in memory (never the keychain or real storage), marks the app as signed in, and keeps every call off the real backend. |
+| `account` | Signs in to the user's demo account through the app's real sign-in code, then continues as usual. |
+
+For `account`:
+- `launch --login` reads `.seedshot/login.json` and passes each field as `SEEDSHOT_LOGIN_<FIELD>`: `{"email": …, "password": …}` arrives as `SEEDSHOT_LOGIN_EMAIL` and `SEEDSHOT_LOGIN_PASSWORD`. The scripts never print the values, and refuse a file git could commit.
+- In seedshot mode, call the app's sign-in function (`AuthService.signIn(email:password:)`, Firebase/Supabase `signInWithPassword`, the login use case) with those values, and await it before opening the screen. Don't type into the login screen.
+- If the app keeps its session between launches, sign in only when it's signed out. Fewer sign-ins, fewer rate limits.
+- Data still comes from the seed by default, so every locale tells the same story. The real session only gets the app past checks that need one (server-checked tokens, auth-gated images, remote config). If the user prepared the account with showcase data and wants that shown, skip the data hooks for those screens; that data is the same in every language.
+- Read only: never create, edit or delete anything in the account, and don't register push tokens.
+- An account that needs a one-time code (2FA, email link, SMS) can't sign in unattended. Ask for a demo account without one, or use `fake`.
 
 ---
 
@@ -31,12 +69,12 @@ Seedshot mode is a small module in the app that renders any listed screen with s
 ```bash
 xcodebuild -scheme <Scheme> [-workspace <App>.xcworkspace | -project <App>.xcodeproj] \
   -configuration Debug -sdk iphonesimulator -destination "id=$UDID" \
-  -derivedDataPath build/seedshot \
+  -derivedDataPath ~/Library/Developer/Xcode/DerivedData/Seedshot-<App> \
   SWIFT_ACTIVE_COMPILATION_CONDITIONS="DEBUG SEEDSHOT" build
-# app: build/seedshot/Build/Products/Debug-iphonesimulator/<Product>.app
+# app: ~/Library/Developer/Xcode/DerivedData/Seedshot-<App>/Build/Products/Debug-iphonesimulator/<Product>.app
 ```
 
-Add `build/seedshot/` to `.gitignore` if it isn't covered already.
+The build output stays outside the project, so nothing new appears in `git status`.
 
 **Module** (`<App>/Seedshot/Seedshot.swift`):
 
@@ -50,7 +88,8 @@ enum Seedshot {
     static var isActive: Bool { screen != nil }
     static let now: Date = Calendar.current.date(bySettingHour: 9, minute: 41, second: 0, of: Date())!
 
-    private static func param(_ key: String) -> String? {
+    /// Any SEEDSHOT_* launch parameter, e.g. param("SEEDSHOT_LOGIN_EMAIL").
+    static func param(_ key: String) -> String? {
         ProcessInfo.processInfo.environment[key] ?? UserDefaults.standard.string(forKey: key)
     }
 
@@ -66,7 +105,7 @@ enum Seedshot {
 #endif
 ```
 
-Seed JSON files ship as bundle resources. They're inert without the flag. To keep them out of Release builds too, add `EXCLUDED_SOURCE_FILE_NAMES = seedshot-*.json` to the Release configuration of the app target.
+Seed JSON files ship as bundle resources. They're inert without the flag. If the target uses folder sync (Xcode 16+, `PBXFileSystemSynchronizedRootGroup`), files in the folder are built with no project-file change. Otherwise add them to the target in `project.pbxproj`, and register that file too.
 
 **Hooks:**
 - **Data:** inject at the composition root.
@@ -75,7 +114,7 @@ Seed JSON files ship as bundle resources. They're inert without the flag. To kee
   - Core Data: use an in-memory store (`NSInMemoryStoreType`).
   - Plain REST: a `URLProtocol` subclass that answers from seed JSON keyed by path. `URLProtocol.registerClass` only covers `URLSession.shared`. For custom sessions (Alamofire included), prepend it to `configuration.protocolClasses`.
 - **Navigation:** at the root, map `Seedshot.screen` to state. Set the selected tab, push the detail for a specific seed item (`path = [seed.items[2]]`), present the sheet. Reuse the real views, so the screenshot shows the real UI.
-- **Path to screen:** pretend signed-in (seed user/token in memory, never the keychain), and mark onboarding and "what's new" as seen. Don't request permissions, don't show rating prompts, don't start analytics. To have permissions already granted, run `xcrun simctl privacy $UDID grant all <bundle-id>` before launch.
+- **Path to screen:** sign in as [above](#sign-in), and mark onboarding and "what's new" as seen. Don't request permissions, don't show rating prompts, don't start analytics. To have permissions already granted, run `xcrun simctl privacy $UDID grant all <bundle-id>` before launch.
 - **Animations:** `UIView.setAnimationsEnabled(false)` early in launch settles UIKit and most SwiftUI transitions. Stop looping animations (Lottie, shimmer) in seedshot mode.
 
 ---
@@ -102,15 +141,18 @@ android {
 
 ```kotlin
 object Seedshot {
-    var screen: String? = null; private set
-    var locale: String = "en-US"; private set
+    /** Every SEEDSHOT_* extra, e.g. params["SEEDSHOT_LOGIN_EMAIL"]. */
+    var params: Map<String, String> = emptyMap(); private set
+    val screen: String? get() = params["SEEDSHOT_SCREEN"]
+    val locale: String get() = params["SEEDSHOT_LOCALE"] ?: "en-US"
     val isActive: Boolean get() = BuildConfig.SEEDSHOT && screen != null
     val now: java.time.LocalDateTime get() = java.time.LocalDate.now().atTime(9, 41)
 
     fun init(intent: android.content.Intent) {
         if (!BuildConfig.SEEDSHOT) return
-        screen = intent.getStringExtra("SEEDSHOT_SCREEN")
-        locale = intent.getStringExtra("SEEDSHOT_LOCALE") ?: locale
+        val extras = intent.extras ?: return
+        params = extras.keySet().filter { it.startsWith("SEEDSHOT_") }
+            .associateWith { extras.getString(it).orEmpty() }
     }
 
     fun json(context: android.content.Context): String =
@@ -158,18 +200,19 @@ import 'package:flutter/services.dart';
 const kSeedshot = bool.fromEnvironment('SEEDSHOT');
 
 class Seedshot {
-  static String? screen;
-  static String locale = 'en-US';
+  /// Every SEEDSHOT_* launch parameter, e.g. params['SEEDSHOT_LOGIN_EMAIL'].
+  static Map<String, String?> params = {};
+  static String? get screen => params['SEEDSHOT_SCREEN'];
+  static String get locale => params['SEEDSHOT_LOCALE'] ?? 'en-US';
   static bool get isActive => kSeedshot && screen != null;
   static DateTime get now { final d = DateTime.now(); return DateTime(d.year, d.month, d.day, 9, 41); }
 
   static Future<void> init() async {
     if (!kSeedshot) return;
-    final Map<String, String?> p = Platform.isAndroid
+    params = Platform.isAndroid
         ? Map<String, String?>.from(await const MethodChannel('seedshot').invokeMethod('params') ?? {})
-        : Platform.environment; // iOS: simctl passes SEEDSHOT_* as environment variables
-    screen = p['SEEDSHOT_SCREEN'];
-    locale = p['SEEDSHOT_LOCALE'] ?? locale;
+        // iOS: simctl passes SEEDSHOT_* as environment variables
+        : Map.fromEntries(Platform.environment.entries.where((e) => e.key.startsWith('SEEDSHOT_')));
   }
 
   static Future<Map<String, dynamic>> data() async {
@@ -187,10 +230,10 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "seedshot").setMethodCallHandler { call, result ->
-            if (call.method == "params") result.success(mapOf(
-                "SEEDSHOT_SCREEN" to intent.getStringExtra("SEEDSHOT_SCREEN"),
-                "SEEDSHOT_LOCALE" to intent.getStringExtra("SEEDSHOT_LOCALE"),
-            )) else result.notImplemented()
+            if (call.method == "params") result.success(
+                intent.extras?.keySet().orEmpty().filter { it.startsWith("SEEDSHOT_") }
+                    .associateWith { intent.getStringExtra(it) }
+            ) else result.notImplemented()
         }
     }
 }
@@ -229,8 +272,9 @@ If the build command installs the app itself, skip `install` and go straight to 
 ```ts
 import { LaunchArguments } from 'react-native-launch-arguments';
 const SEEDSHOT = process.env.SEEDSHOT === '1';
-const args = SEEDSHOT ? LaunchArguments.value<{ SEEDSHOT_SCREEN?: string; SEEDSHOT_LOCALE?: string }>() : {};
-export const seedshot = { active: SEEDSHOT && !!args.SEEDSHOT_SCREEN, screen: args.SEEDSHOT_SCREEN, locale: args.SEEDSHOT_LOCALE ?? 'en-US' };
+const args: Record<string, string | undefined> = SEEDSHOT ? LaunchArguments.value() : {};
+// params holds every SEEDSHOT_* value, e.g. params.SEEDSHOT_LOGIN_EMAIL
+export const seedshot = { active: SEEDSHOT && !!args.SEEDSHOT_SCREEN, screen: args.SEEDSHOT_SCREEN, locale: args.SEEDSHOT_LOCALE ?? 'en-US', params: args };
 ```
 
 **Hooks:**
@@ -299,3 +343,5 @@ EXPO_PUBLIC_SEEDSHOT=1 npx expo run:android --variant release --device Seedshot_
 | Emulator never finishes booting | Check `~/.android/avd/<AVD>.seedshot.log` and try `--headless`. Low disk space and old emulator versions are the usual causes. |
 | Dark screenshots look light on Android | The app forces or caches its theme. Make it follow the system theme in seedshot mode. |
 | Wrong or system fonts | Async font loading wasn't finished before the shot. Wait for fonts in seedshot mode. |
+| Lock icons or upgrade banners still show | Some screen reads the entitlement from somewhere else (the SDK directly, a cached flag). Route it through the stubbed check. |
+| Demo-account sign-in fails | Try the account on a normal build first. Sign in only when signed out, to avoid rate limits. Accounts that need a one-time code can't be used. |

@@ -21,6 +21,7 @@ import sys
 import time
 
 import pngkit
+import session
 
 AVD_PREFIX = "Seedshot_"
 
@@ -42,14 +43,15 @@ def die(msg, code=1):
     sys.exit(code)
 
 
-def run(cmd, check=True, timeout=None, text=True):
+def run(cmd, check=True, timeout=None, text=True, label=None):
+    label = label or " ".join(cmd)  # pass a label when the command line holds secrets
     try:
         proc = subprocess.run(cmd, capture_output=True, text=text, timeout=timeout)
     except subprocess.TimeoutExpired:
-        die(f"timed out: {' '.join(cmd)}")
+        die(f"timed out: {label}")
     if check and proc.returncode != 0:
         err = proc.stderr if text else proc.stderr.decode(errors="replace")
-        die(f"{' '.join(cmd)}\n{(err or '').strip()}")
+        die(f"{label}\n{(err or '').strip()}")
     return proc
 
 
@@ -87,14 +89,15 @@ def avd_home():
     return os.path.join(user_home, "avd")
 
 
-def adb(serial, *args, check=True, timeout=60, text=True):
+def adb(serial, *args, check=True, timeout=60, text=True, label=None):
     exe = adb_path() or die("adb not found; install Android SDK Platform-Tools")
-    return run([exe, "-s", serial, *args], check=check, timeout=timeout, text=text)
+    return run([exe, "-s", serial, *args], check=check, timeout=timeout, text=text, label=label)
 
 
-def shell(serial, *args, check=True, timeout=60):
+def shell(serial, *args, check=True, timeout=60, label=None):
     # adb joins shell arguments into one remote command line, so quote each one.
-    return adb(serial, "shell", " ".join(shlex.quote(a) for a in args), check=check, timeout=timeout)
+    return adb(serial, "shell", " ".join(shlex.quote(a) for a in args), check=check, timeout=timeout,
+               label=label)
 
 
 def host_abi():
@@ -350,11 +353,15 @@ def cmd_launch(args):
     for kv in args.param or []:
         k, _, v = kv.partition("=")
         params[k] = v
+    if args.login:  # demo account: SEEDSHOT_LOGIN_* parameters, never printed
+        params.update(session.login_params(args.login))
     extras = []
     for k, v in params.items():
         extras += ["--es", k, v]
-    shell(args.serial, "am", "start", "-W", "-n", component, *extras, timeout=120)
-    print(f"launched {component} [{args.locale}, {how} locale] screen={args.screen or '-'}")
+    shell(args.serial, "am", "start", "-W", "-n", component, *extras, timeout=120,
+          label=f"am start {component}")
+    print(f"launched {component} [{args.locale}, {how} locale] screen={args.screen or '-'}"
+          + (" signed-in" if args.login else ""))
 
 
 def grab(serial):
@@ -454,6 +461,9 @@ def main():
     s.add_argument("--screen", help="value for the SEEDSHOT_SCREEN extra")
     s.add_argument("--activity", help="component to start (default: the launcher activity)")
     s.add_argument("--param", action="append", metavar="KEY=VALUE", help="extra string intent extra (repeatable)")
+    s.add_argument("--login", nargs="?", const=".seedshot/login.json", metavar="FILE",
+                   help="sign in with a demo account: pass the JSON file's fields as SEEDSHOT_LOGIN_* "
+                        "(default file: .seedshot/login.json)")
     s.set_defaults(fn=cmd_launch)
 
     s = sub.add_parser("shot", help="save an alpha-free screenshot once the screen stops changing")
