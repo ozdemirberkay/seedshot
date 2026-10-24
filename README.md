@@ -2,6 +2,10 @@
 
 **Store-ready App Store and Google Play screenshots with realistic, localized demo data, captured by Claude Code.**
 
+![The same five Walletrax screens in Turkish and English, each with its own local prices and number formats](.github/preview.jpg)
+
+<sub>[Walletrax](https://play.google.com/store/apps/details?id=com.berkayozdemir.walletrax) on Google Play: one story, told natively in each language (₺230 in Turkish, $6.75 in English). Screens and demo data by Seedshot; captions and device frames added afterwards.</sub>
+
 The capture command is the easy part of store screenshots. The hard part is what's on screen: a populated, believable app, written natively in every language, telling the same story on every device, in light and dark mode, at exactly the sizes the stores accept.
 
 Seedshot is a [Claude Code](https://code.claude.com) plugin that does all of it inside your project:
