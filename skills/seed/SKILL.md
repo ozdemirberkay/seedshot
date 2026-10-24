@@ -4,7 +4,10 @@ description: Prepare a mobile app for store screenshots without capturing them. 
 license: MIT
 compatibility: Requires a local mobile project. The optional smoke test needs an iOS simulator (macOS with Xcode) or an Android emulator. Python 3 for helper scripts.
 allowed-tools:
-  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/*)
+  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/ios.py *)
+  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/android.py *)
+  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/session.py *)
+  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/verify.py *)
   - Bash(xcrun simctl *)
   - Bash(adb *)
 ---

@@ -4,7 +4,10 @@ description: Capture App Store and Google Play screenshots on dedicated iOS simu
 license: MIT
 compatibility: Requires a local mobile project. iOS capture needs macOS with Xcode (xcrun simctl). Android capture needs the Android SDK (adb, emulator, avdmanager). Python 3 for helper scripts; Pillow is optional (only for fixing alpha channels).
 allowed-tools:
-  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/*)
+  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/ios.py *)
+  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/android.py *)
+  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/session.py *)
+  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/verify.py *)
   - Bash(xcrun simctl *)
   - Bash(adb *)
 ---

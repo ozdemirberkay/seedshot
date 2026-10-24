@@ -4,7 +4,10 @@ description: Check App Store and Google Play screenshots before upload. Runs sto
 license: MIT
 compatibility: Python 3 for the checks; Pillow is optional (only for fixing alpha channels). Re-capturing needs an iOS simulator (macOS with Xcode) or an Android emulator.
 allowed-tools:
-  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/*)
+  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/ios.py *)
+  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/android.py *)
+  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/session.py *)
+  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/verify.py *)
   - Bash(xcrun simctl *)
   - Bash(adb *)
 ---

@@ -14,7 +14,6 @@ import os
 import platform
 import shlex
 import shutil
-import socket
 import struct
 import subprocess
 import sys
@@ -167,10 +166,13 @@ def wait_for_boot(serial, timeout):
 
 
 def free_port(start=5580):
+    """First console port in Seedshot's range that no emulator known to adb is using."""
+    exe = adb_path()
+    out = run([exe, "devices"], check=False).stdout if exe else ""
+    used = {line.split()[0] for line in out.splitlines()[1:] if line.strip()}
     for port in range(start, 5682, 2):
-        with socket.socket() as s:
-            if s.connect_ex(("127.0.0.1", port)) != 0:
-                return port
+        if f"emulator-{port}" not in used:
+            return port
     die("no free emulator port found")
 
 
