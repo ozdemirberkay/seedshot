@@ -1,13 +1,16 @@
 {
   "name": "seedshot",
   "displayName": "Seedshot",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Store-ready App Store and Google Play screenshots with realistic, consistent, localized demo data, in every language and in light and dark mode, on iOS simulators and Android emulators.",
   "author": {
     "name": "Berkay Özdemir"
   },
   "homepage": "https://github.com/ozdemirberkay/seedshot",
   "repository": "https://github.com/ozdemirberkay/seedshot",
+  "documentationUrl": "https://github.com/ozdemirberkay/seedshot#readme",
+  "supportUrl": "https://github.com/ozdemirberkay/seedshot/issues",
+  "privacyPolicyUrl": "https://github.com/ozdemirberkay/seedshot#privacy",
   "license": "MIT",
   "keywords": [
     "app-store",

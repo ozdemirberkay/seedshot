@@ -130,6 +130,12 @@ Seedshot only reads with that account: it never creates, edits or deletes anythi
 - **Writes:** screenshots to `~/Desktop/seedshot/<App>/`, or the folder you choose. iOS build output goes to `~/Library/Developer/Xcode/DerivedData/Seedshot-<App>`.
 - **Network:** Seedshot sends no data anywhere. Network access happens only through your project's build tools (CocoaPods, Gradle, npm …), SDK downloads it asks you about first, and, if you give it a demo account, your app signing in to your backend with it.
 
+## Privacy
+
+Seedshot has no server and collects nothing. Its scripts make no network requests, so nothing about you, your project or your screenshots leaves your machine through Seedshot. What it writes stays on your computer: the screenshots, and `.seedshot/` in your project, which git ignores. A demo account, if you give it one, stays in `.seedshot/login.json` and goes only to your own app on the simulator (see [Using a demo account](#using-a-demo-account)). As in any Claude Code session, what Claude reads in your project during a run is processed by Claude under Anthropic's terms; Seedshot adds no other destination.
+
+Questions or concerns: [open an issue](https://github.com/ozdemirberkay/seedshot/issues).
+
 ## Supported stacks
 
 Swift (SwiftUI / UIKit) · Kotlin (Jetpack Compose / Views) · Flutter · React Native · Expo
